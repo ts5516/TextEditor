@@ -3,9 +3,14 @@
 }
 
 .TextEditor{
-  border-style: solid;
   margin-top: 200px;
   margin-left: 200px;
+  width: 600px;
+  height: 600px;
+}
+
+.Contenteditable{
+  border-style: solid;
   width: 600px;
   height: 600px;
 }

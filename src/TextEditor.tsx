@@ -1,24 +1,45 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { EditableDivEvent, EditableDiv } from './EditableDiv';
+import Wordbook from './wordbook.txt';
 
 function TextEditor() {
-    const [content, setContent] = useState('');
+    const [html, setHtml] = useState<string>('');
+    const [content, setContent] = useState<string>('');
+    const [wordbook, setWordbook] = useState<string[]>([]);
 
     useEffect(() => {
+        fetch(Wordbook)
+            .then((response) => response.text())
+            .then((text) => { setWordbook(text.split('\r\n')) });
+    }, []);
 
-    });
+    const handleChange = (evt: EditableDivEvent) => {
+        const textArray = evt.target.content.split(/(<div>)/);
+        const newArray = textArray.map(text => {
+            return convertText(text);
+        });
 
-    const handleKeyDown = (key: string) => {
-        //setContent(content + key);
-        console.log(content);
-    };
+        setContent(evt.target.content);
+        setHtml(newArray.join(''));
+    }
+
+    const convertText = (text: string): string => {
+        let convertT = text;
+        wordbook.forEach(word => {
+            const addText = '<font color="red">' + word + '</font>';
+            const regex = new RegExp(word, 'gi');
+            convertT = convertT.replace(regex, addText);
+        });
+
+        return convertT;
+    }
 
     return (
-        <div
-            className="TextEditor"
-            contentEditable="true"
-            suppressContentEditableWarning={true}
-            onKeyDown={(e) => handleKeyDown(e.key)}>
-            {content}
+        <div className="TextEditor">
+            <EditableDiv
+                html={html}
+                content={content}
+                onChange={handleChange} />
         </div>
     );
 }
