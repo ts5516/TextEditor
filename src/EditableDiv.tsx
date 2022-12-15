@@ -16,38 +16,51 @@ interface Props extends DivProps {
     content: string
 }
 
+type Pos = {
+    Y: number,
+    X: number
+}
+
 function EditableDiv(props: Props) {
     const [html, setHtml] = useState(props.html);
     const divRef = useRef<HTMLDivElement>(null);
+    //const [caret, setCaret] = useState<Pos>({ Y: 0, X: 0 });
 
     useEffect(() => {
         const el = divRef.current;
         if (!el) return;
-
+        console.log('useEffect');
         if (props.html !== el.innerHTML) {
             el.innerHTML = props.html;
         }
 
+        // getCaretPosition();
+        // console.log(caret);
         replaceCaret(el);
-    });
+    }, [divRef, props]);
 
-    const emitChange = (evt: React.KeyboardEvent<HTMLDivElement>) => {
-        if (evt.nativeEvent.isComposing) return;
+    const emitChange = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.nativeEvent.isComposing || !divRef.current) { return; }
+
+        console.log('start emitChange');
 
         const el = divRef.current;
-        if (!el) return;
-        const elHtml = el.innerHTML;
-        if (elHtml !== html) {
-            const evt1 = Object.assign({}, evt, {
+        if (el.innerHTML !== html) {
+            console.log('change editor');
+
+            props.onChange(Object.assign({}, event, {
                 target: {
-                    html: elHtml,
+                    html: el.innerHTML,
                     content: el.innerText
                 }
-            });
-            props.onChange(evt1);
+            }));
         }
-        setHtml(elHtml);
+        // setCaretPosition();
+        // console.log(caret);
+        setHtml(el.innerHTML);
     };
+
+
 
     return (
         <div
@@ -62,6 +75,7 @@ function EditableDiv(props: Props) {
 }
 
 memo(EditableDiv, (props: Readonly<Props>, nextProps: Readonly<Props>) => {
+    console.log('memo');
     return nextProps.html === props.html;
 });
 
