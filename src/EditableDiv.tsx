@@ -1,8 +1,6 @@
 import { memo, useState, useRef, useEffect } from 'react';
 
-type ContentEditableEvent = React.SyntheticEvent<any, Event> & EditableDivEvent;
-type Modify<T, R> = Pick<T, Exclude<keyof T, keyof R>> & R;
-type DivProps = Modify<JSX.IntrinsicElements["div"], { onChange: ((event: ContentEditableEvent) => void) }>;
+type ContentEditableEvent = EditableDivEvent;
 
 export type EditableDivEvent = {
     target: {
@@ -11,20 +9,21 @@ export type EditableDivEvent = {
     }
 };
 
-interface Props extends DivProps {
+interface Props {
     html: string
     content: string
+    onChange: ((event: ContentEditableEvent) => void)
 }
 
-type Pos = {
-    Y: number,
+type Point = {
     X: number
+    Y: number
 }
 
 function EditableDiv(props: Props) {
     const [html, setHtml] = useState(props.html);
     const divRef = useRef<HTMLDivElement>(null);
-    const [caret, setCaret] = useState<Pos>({ Y: 0, X: 0 });
+    const [caret, setCaret] = useState<Point>({ X: 0, Y: 0 });
 
     useEffect(() => {
         const el = divRef.current;
@@ -45,21 +44,65 @@ function EditableDiv(props: Props) {
         console.log('start emitChange');
 
         const el = divRef.current;
-        if (el.innerHTML !== html) {
-            console.log('change editor');
+        props.onChange({
+            target: {
+                html: el.innerHTML,
+                content: el.innerText
+            }
+        });
 
-            props.onChange(Object.assign({}, event, {
-                target: {
-                    html: el.innerHTML,
-                    content: el.innerText
-                }
-            }));
-        }
-
-        // setCaretPosition();
-        // console.log(caret);
-        setHtml(el.innerHTML);
+        setCaret(getCaretPosition());
+        console.log(caret);
     };
+
+    const setCaretPosition = () => {
+        // var tag = divRef.current;
+        // if (tag) {
+        //     // Creates range object
+        //     var setpos = document.createRange();
+
+        //     // Creates object for selection
+        //     var set = window.getSelection();
+        //     if (set) {
+        //         // Set start position of range
+        //         setpos.setStart(tag.childNodes[0], caret.Y + caret.X);
+
+        //         // Collapse range within its boundary points
+        //         // Returns boolean
+        //         setpos.collapse(true);
+
+        //         // Remove all ranges set
+        //         set.removeAllRanges();
+
+        //         // Add range with respect to range object.
+        //         set.addRange(setpos);
+
+        //         // Set cursor on focus
+        //         tag.focus();
+        //     }
+        // }
+    };
+
+    const getCaretPosition = () => {
+        let x = 0, y = 0;
+        const isSupported = typeof window.getSelection !== "undefined";
+        if (isSupported) {
+            const selection = window.getSelection();
+
+            if (selection) {
+                if (selection.rangeCount !== 0) {
+                    const range = selection.getRangeAt(0).cloneRange();
+                    range.collapse(true);
+                    const rect = range.getClientRects()[0];
+                    if (rect) {
+                        x = rect.left; // since the caret is only 1px wide, left == right
+                        y = rect.top; // top edge of the caret
+                    }
+                }
+            }
+        }
+        return { X: x, Y: y };
+    }
 
     return (
         <div
@@ -68,7 +111,7 @@ function EditableDiv(props: Props) {
             onInput={emitChange}
             contentEditable
             suppressContentEditableWarning={true}
-            dangerouslySetInnerHTML={{ __html: props.html }}>
+        >
         </div>
     );
 }

@@ -8,28 +8,23 @@ function TextEditor() {
     const wordbook = getWordbook();
 
     const handleChange = (evt: EditableDivEvent) => {
-        const contentArray = evt.target.content.split('\n');
-        const htmlArray = evt.target.html.split(/<div>|<\/div>/).filter((text) => {
-            return text !== '';
-        });
-        const newArray = contentArray.map((text, index) => {
-            return convertText(text, index);
-        });
-
-        let arr = '';
-        for (let i = 0; i < htmlArray.length; i++) {
-            if (newArray[i] === '') {
-                arr += '<div>' + htmlArray[i] + '</div>';
+        const contentArray = evt.target.content.replace(/\n\n/gi, '\n').split('\n');
+        const converted = contentArray.map((text, index) => {
+            const result = convertText(text);
+            if (index > 0) {
+                return '<div>' + result + '</div>';
             } else {
-                arr += '<div>' + newArray[i] + '</div>';
+                return result;
             }
-        }
+        }).join('\n');
+        console.log(converted);
+        console.log(contentArray);
 
+        setHtml(converted);
         setContent(evt.target.content);
-        setHtml(arr);
     }
 
-    const convertText = (text: string, index: number): string => {
+    const convertText = (text: string): string => {
         let convertT = text;
         wordbook.forEach(word => {
             const addText = '<font color="red">' + word + '</font>';
