@@ -24,7 +24,7 @@ type Pos = {
 function EditableDiv(props: Props) {
     const [html, setHtml] = useState(props.html);
     const divRef = useRef<HTMLDivElement>(null);
-    //const [caret, setCaret] = useState<Pos>({ Y: 0, X: 0 });
+    const [caret, setCaret] = useState<Pos>({ Y: 0, X: 0 });
 
     useEffect(() => {
         const el = divRef.current;
@@ -55,12 +55,11 @@ function EditableDiv(props: Props) {
                 }
             }));
         }
+
         // setCaretPosition();
         // console.log(caret);
         setHtml(el.innerHTML);
     };
-
-
 
     return (
         <div

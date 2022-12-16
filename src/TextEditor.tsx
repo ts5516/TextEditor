@@ -1,17 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { EditableDivEvent, EditableDiv } from './EditableDiv';
-import Wordbook from './wordbook.txt';
+import { getWordbook } from './wordbook';
 
 function TextEditor() {
     const [html, setHtml] = useState<string>('');
     const [content, setContent] = useState<string>('');
-    const [wordbook, setWordbook] = useState<string[]>([]);
-
-    useEffect(() => {
-        fetch(Wordbook)
-            .then((response) => response.text())
-            .then((text) => { setWordbook(text.split('\r\n')) });
-    }, []);
+    const wordbook = getWordbook();
 
     const handleChange = (evt: EditableDivEvent) => {
         const contentArray = evt.target.content.split('\n');
