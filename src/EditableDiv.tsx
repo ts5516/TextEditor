@@ -86,13 +86,17 @@ function EditableDiv(props: Props) {
     const getCaretPosition = () => {
         let x = 0, y = 0;
         const isSupported = typeof window.getSelection !== "undefined";
+        const elem = divRef.current;
         if (isSupported) {
             const selection = window.getSelection();
 
-            if (selection) {
+            if (selection && elem) {
                 if (selection.rangeCount !== 0) {
                     const range = selection.getRangeAt(0).cloneRange();
-                    range.collapse(true);
+                    range.selectNodeContents(elem);
+                    range.setEnd(range.endContainer, range.endOffset)
+                    console.log(range.toString());
+
                     const rect = range.getClientRects()[0];
                     if (rect) {
                         x = rect.left; // since the caret is only 1px wide, left == right
