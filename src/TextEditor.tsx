@@ -8,31 +8,55 @@ function TextEditor() {
     const wordbook = getWordbook();
 
     const handleChange = (evt: EditableDivEvent) => {
-        const contentArray = evt.target.content.replace(/\n\n/gi, '\n').split('\n');
+        const contentArray = contentSplitToEnter(evt.target.content);
         const converted = contentArray.map((text, index) => {
-            const result = convertText(text);
+            const result = convertText(text, evt.target.key);
             if (index > 0) {
                 return '<div>' + result + '</div>';
             } else {
                 return result;
             }
-        }).join('\n');
-        console.log(converted);
-        console.log(contentArray);
+        }).join('');
 
         setHtml(converted);
         setContent(evt.target.content);
     }
 
-    const convertText = (text: string): string => {
+    const contentSplitToEnter = (content: string): string[] => {
+        return content.replace(/\n\n/gi, '\n').split('\n');
+    }
+
+    const convertText = (text: string, key: string): string => {
+        const convertColor = convertTextColor(text);
+        const convertEmpty = convertEmptyToWhitespace(convertColor);
+        const convertEnd = removeEndWhiteSpaceIfKeyIsEnter(convertEmpty, key);
+
+        return convertEnd;
+    }
+
+    const convertTextColor = (text: string): string => {
         let convertT = text;
-        wordbook.forEach(word => {
+
+        for (let word of wordbook) {
             const addText = '<font color="red">' + word + '</font>';
             const regex = new RegExp(word, 'gi');
             convertT = convertT.replace(regex, addText);
-        });
+        }
 
         return convertT;
+    }
+
+    const convertEmptyToWhitespace = (text: string): string => {
+        return text === '' ? '&nbsp;' : text;
+    }
+
+    const removeEndWhiteSpaceIfKeyIsEnter = (text: string, key: string)
+        : string => {
+        if (key === 'Enter') {
+            return text.trim().length === 0 ? text : text.trimEnd();
+        } else {
+            return text;
+        }
     }
 
     return (

@@ -1,111 +1,118 @@
-import { memo, useState, useRef, useEffect } from 'react';
-
-type ContentEditableEvent = EditableDivEvent;
+import React, { useState, useRef, useEffect } from 'react';
 
 export type EditableDivEvent = {
     target: {
-        html: string,
-        content: string
+        content: string,
+        key: string
     }
 };
 
 interface Props {
     html: string
     content: string
-    onChange: ((event: ContentEditableEvent) => void)
+    onChange: ((event: EditableDivEvent) => void)
 }
 
-type Point = {
-    X: number
-    Y: number
+type Caret = {
+    start: number
+    end: number
 }
 
 function EditableDiv(props: Props) {
-    const [html, setHtml] = useState(props.html);
     const divRef = useRef<HTMLDivElement>(null);
-    const [caret, setCaret] = useState<Point>({ X: 0, Y: 0 });
+    const [caret, setCaret] = useState<Caret>({ start: 0, end: 0 });
+    const [pressedkey, setPressedkey] = useState<string>('');
 
     useEffect(() => {
-        const el = divRef.current;
-        if (!el) return;
-        console.log('useEffect');
-        if (props.html !== el.innerHTML) {
-            el.innerHTML = props.html;
+        if (divRef.current && props.html !== divRef.current.innerHTML) {
+            divRef.current.innerHTML = props.html;
         }
 
-        // getCaretPosition();
-        // console.log(caret);
-        replaceCaret(el);
+        recoverCaret(caret);
     }, [divRef, props]);
 
     const emitChange = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (event.nativeEvent.isComposing || !divRef.current) { return; }
 
-        console.log('start emitChange');
-
-        const el = divRef.current;
         props.onChange({
             target: {
-                html: el.innerHTML,
-                content: el.innerText
+                content: divRef.current.innerText,
+                key: pressedkey
             }
         });
 
-        setCaret(getCaretPosition());
-        console.log(caret);
+        saveCaret();
     };
 
-    const setCaretPosition = () => {
-        // var tag = divRef.current;
-        // if (tag) {
-        //     // Creates range object
-        //     var setpos = document.createRange();
-
-        //     // Creates object for selection
-        //     var set = window.getSelection();
-        //     if (set) {
-        //         // Set start position of range
-        //         setpos.setStart(tag.childNodes[0], caret.Y + caret.X);
-
-        //         // Collapse range within its boundary points
-        //         // Returns boolean
-        //         setpos.collapse(true);
-
-        //         // Remove all ranges set
-        //         set.removeAllRanges();
-
-        //         // Add range with respect to range object.
-        //         set.addRange(setpos);
-
-        //         // Set cursor on focus
-        //         tag.focus();
-        //     }
-        // }
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        setPressedkey(event.key);
     };
 
-    const getCaretPosition = () => {
-        let x = 0, y = 0;
-        const isSupported = typeof window.getSelection !== "undefined";
-        const elem = divRef.current;
-        if (isSupported) {
-            const selection = window.getSelection();
+    const recoverCaret = (caret: Caret) => {
+        if (!divRef.current) { return; };
 
-            if (selection && elem) {
-                if (selection.rangeCount !== 0) {
-                    const range = selection.getRangeAt(0).cloneRange();
-                    range.selectNodeContents(elem);
-                    range.setEnd(range.endContainer, range.endOffset)
-                    console.log(range.toString());
+        const range = document.createRange();
+        range.setStart(divRef.current, 0);
+        range.collapse(true);
 
-                    const rect = range.getClientRects()[0];
-                    if (rect) {
-                        x = rect.left; // since the caret is only 1px wide, left == right
-                        y = rect.top; // top edge of the caret
-                    }
+        let nodeStack: Node[] = [divRef.current];
+        let node: Node | undefined = undefined;
+        let foundStart = false, stop = false;
+        let charIndex = 0;
+
+        while (!stop && nodeStack.length !== 0) {
+            node = nodeStack.pop();
+            if (node === undefined) {
+                return;
+            } else if (node.nodeType === 3 && node.nodeValue !== null) {
+                const nextCharIndex = charIndex + node.nodeValue.length;
+                if (!foundStart &&
+                    caret.start >= charIndex && caret.start <= nextCharIndex) {
+                    range.setStart(node, caret.start - charIndex);
+                    foundStart = true;
+                }
+                if (foundStart &&
+                    caret.end >= charIndex && caret.end <= nextCharIndex) {
+                    range.setEnd(node, caret.end - charIndex);
+                    stop = true;
+                }
+                charIndex = nextCharIndex;
+            } else {
+                let i = node.childNodes.length;
+                while (i--) {
+                    nodeStack.push(node.childNodes[i]);
                 }
             }
         }
-        return { X: x, Y: y };
+
+        const sel = window.getSelection();
+        if (sel) {
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    };
+
+    const saveCaret = () => {
+        const select = window.getSelection();
+        if (!select || !divRef.current) { return; }
+
+        const range = select.getRangeAt(0);
+        const preSelectionRange = range.cloneRange();
+        preSelectionRange.selectNodeContents(divRef.current);
+        preSelectionRange.setEnd(range.startContainer, range.startOffset);
+
+        const start = preSelectionRange.toString().length;
+        const caret: Caret = pressedkey === 'Enter' ?
+            {
+                start: start + 1,
+                end: start + range.toString().length
+            } :
+            {
+                start: start,
+                end: start + range.toString().length
+            }
+
+        setCaret(caret);
     }
 
     return (
@@ -113,35 +120,12 @@ function EditableDiv(props: Props) {
             className='Contenteditable'
             ref={divRef}
             onInput={emitChange}
+            onKeyDown={handleKeyDown}
             contentEditable
             suppressContentEditableWarning={true}
         >
         </div>
     );
-}
-
-memo(EditableDiv, (props: Readonly<Props>, nextProps: Readonly<Props>) => {
-    console.log('memo');
-    return nextProps.html === props.html;
-});
-
-function replaceCaret(el: HTMLElement) {
-    // Place the caret at the end of the element
-    const target = document.createTextNode('');
-    el.appendChild(target);
-    // do not move caret if element was not focused
-    const isTargetFocused = document.activeElement === el;
-    if (target !== null && target.nodeValue !== null && isTargetFocused) {
-        var sel = window.getSelection();
-        if (sel !== null) {
-            var range = document.createRange();
-            range.setStart(target, target.nodeValue.length);
-            range.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }
-        if (el instanceof HTMLElement) el.focus();
-    }
 }
 
 export { EditableDiv }
