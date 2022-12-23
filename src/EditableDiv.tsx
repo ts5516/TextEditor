@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 export type EditableDivEvent = {
     target: {
         content: string,
-        key: string
+        keycode: string
     }
 };
 
@@ -21,7 +21,7 @@ type Caret = {
 function EditableDiv(props: Props) {
     const divRef = useRef<HTMLDivElement>(null);
     const [caret, setCaret] = useState<Caret>({ start: 0, end: 0 });
-    const [pressedkey, setPressedkey] = useState<string>('');
+    const [keycode, setKeycode] = useState<string>('');
 
     useEffect(() => {
         if (divRef.current && props.html !== divRef.current.innerHTML) {
@@ -29,7 +29,7 @@ function EditableDiv(props: Props) {
         }
 
         recoverCaret(caret);
-    }, [divRef, props]);
+    }, [divRef, props, caret]);
 
     const emitChange = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (event.nativeEvent.isComposing || !divRef.current) { return; }
@@ -37,7 +37,7 @@ function EditableDiv(props: Props) {
         props.onChange({
             target: {
                 content: divRef.current.innerText,
-                key: pressedkey
+                keycode: keycode
             }
         });
 
@@ -45,7 +45,7 @@ function EditableDiv(props: Props) {
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-        setPressedkey(event.key);
+        setKeycode(event.code);
     };
 
     const recoverCaret = (caret: Caret) => {
@@ -102,7 +102,7 @@ function EditableDiv(props: Props) {
         preSelectionRange.setEnd(range.startContainer, range.startOffset);
 
         const start = preSelectionRange.toString().length;
-        const caret: Caret = pressedkey === 'Enter' ?
+        const caret: Caret = keycode === 'Enter' ?
             {
                 start: start + 1,
                 end: start + range.toString().length
@@ -128,4 +128,4 @@ function EditableDiv(props: Props) {
     );
 }
 
-export { EditableDiv }
+export { EditableDiv } 

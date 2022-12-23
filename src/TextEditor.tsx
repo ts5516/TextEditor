@@ -10,7 +10,7 @@ function TextEditor() {
     const handleChange = (evt: EditableDivEvent) => {
         const contentArray = contentSplitToEnter(evt.target.content);
         const converted = contentArray.map((text, index) => {
-            const result = convertText(text, evt.target.key);
+            const result = convertText(text, evt.target.keycode);
             if (index > 0) {
                 return '<div>' + result + '</div>';
             } else {
@@ -29,7 +29,7 @@ function TextEditor() {
     const convertText = (text: string, key: string): string => {
         const convertColor = convertTextColor(text);
         const convertEmpty = convertEmptyToWhitespace(convertColor);
-        const convertEnd = removeEndWhiteSpaceIfKeyIsEnter(convertEmpty, key);
+        const convertEnd = removeEndSpaceIfKeyIsNotSpace(convertEmpty, key);
 
         return convertEnd;
     }
@@ -50,10 +50,10 @@ function TextEditor() {
         return text === '' ? '&nbsp;' : text;
     }
 
-    const removeEndWhiteSpaceIfKeyIsEnter = (text: string, key: string)
+    const removeEndSpaceIfKeyIsNotSpace = (text: string, key: string)
         : string => {
-        if (key === 'Enter') {
-            return text.trim().length === 0 ? text : text.trimEnd();
+        if (key !== 'Space') {
+            return text.trimEnd();
         } else {
             return text;
         }
